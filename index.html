@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AFC SME Finance Inc. — Signature</title>
+  <meta name="color-scheme" content="light only">
+  <style>
+    :root {
+      --afc-blue: #0B1D39;  /* dark blue */
+      --afc-red:  #C62828;  /* red accent */
+      --text:     #0B1D39;  /* main text */
+      --muted:    #6B7280;  /* gray */
+      --border:   #D1D5DB;  /* light border */
+      --bg:       #FFFFFF;  /* white background */
+    }
+    html,body { height:100%; margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 760px; margin: 28px auto; padding: 0 16px 24px; }
+    .brand { text-align: center; }
+    .brand h1 { margin: 0 0 12px; font-size: 1.15rem; font-weight: 700; letter-spacing: .2px; color: var(--afc-blue); }
+    .panel { background: #fff; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(11,29,57,0.06); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; align-items: center; justify-content: center; border-bottom: 1px solid var(--border); background: #fff; }
+    button {
+      border-radius: 10px; padding: 10px 14px; font-weight: 600; cursor: pointer; border:1px solid var(--afc-blue); color: var(--afc-blue); background: #fff; transition: .15s ease; }
+    button:hover { background: #f8fafc; box-shadow: 0 1px 4px rgba(11,29,57,0.08); }
+    .btn-primary { border-color: var(--afc-red); color: #fff; background: var(--afc-red); }
+    .btn-primary:hover { filter: brightness(0.95); }
+    .btn-link { border-color: transparent; color: var(--afc-blue); text-decoration: underline; background: transparent; }
+
+    .canvas-wrap { position: relative; background: repeating-linear-gradient(0deg, #ffffff, #ffffff 31px, #f7f7f7 31px, #f7f7f7 32px); }
+    canvas { width: 100%; height: 340px; display: block; touch-action: none; background: transparent; }
+
+    .hint { font-size: .9rem; color: var(--muted); margin: 12px 8px; text-align: center; }
+    .footer { margin-top: 20px; font-size: .85rem; color: var(--muted); text-align: center; }
+    details { margin-top: 10px; }
+    details summary { cursor: pointer; color: var(--afc-blue); font-weight: 600; }
+    pre.license { white-space: pre-wrap; text-align: left; background: #fafafa; border: 1px solid var(--border); padding: 12px; border-radius: 8px; color: #111827; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <h1>AFC SME Finance Inc.</h1>
+    </div>
+
+    <div class="panel">
+      <div class="toolbar">
+        <button id="undoBtn" aria-label="Undo last stroke">Undo</button>
+        <button id="clearBtn" aria-label="Clear signature">Clear</button>
+        <button id="savePNG" class="btn-primary" aria-label="Save signature as transparent PNG">Save PNG (Transparent)</button>
+        <button id="returnBtn" class="btn-link" aria-label="Return to Microsoft Form">Return to Form</button>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="pad" aria-label="Signature canvas"></canvas>
+      </div>
+    </div>
+
+    <p class="hint">Sign in the box above. Tap <b>Save PNG</b> to download a transparent PNG, then upload it to your Microsoft Form.</p>
+
+    <div class="footer">
+      © 2026 AFC SME Finance Inc. All rights reserved. · Includes Signature Pad (MIT License)
+      <details>
+        <summary>View MIT License</summary>
+        <pre class="license">MIT License
+
+Copyright (c) 2018 Szymon Nowak
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</pre>
+      </details>
+    </div>
+  </div>
+
+  <!-- Script: Signature Pad (pinned). You can vendor locally later if desired. -->
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@5.1.3/dist/signature_pad.umd.min.js"></script>
+  <script src="./signature.js"></script>
+</body>
+</html>
