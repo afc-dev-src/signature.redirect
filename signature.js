@@ -1,7 +1,4 @@
 // signature.js — AFC SME Finance Inc. (Signature redirect app)
-// Works with index.html that includes:
-//  - <canvas id="pad"> and buttons: undoBtn, clearBtn, savePNG, returnBtn
-//  - Signature Pad UMD from jsDelivr (window.SignaturePad)
 
 (function () {
   'use strict';
@@ -21,33 +18,30 @@
     return;
   }
 
-  // Initialize the signature pad
   const pad = new window.SignaturePad(canvas, {
-    backgroundColor: 'rgba(0,0,0,0)', // transparent PNG
+    backgroundColor: 'rgba(0,0,0,0)', // keep PNG transparent
     penColor: '#0B1D39',
     minWidth: 0.8,
     maxWidth: 2.2,
     throttle: 16
   });
 
-  // High-DPI / responsive resize (lines stay crisp)
   function resizeCanvas() {
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
     const box = canvas.getBoundingClientRect();
-    if (box.width === 0 || box.height === 0) return; // not laid out yet
+    if (box.width === 0 || box.height === 0) return;
 
     canvas.width  = Math.floor(box.width  * ratio);
     canvas.height = Math.floor(box.height * ratio);
     canvas.getContext('2d').scale(ratio, ratio);
 
-    // Clearing after resize avoids distortion; user hasn’t drawn yet on load.
+    // Clear after resize to avoid distortion before user draws.
     pad.clear();
   }
   window.addEventListener('resize', resizeCanvas);
   window.addEventListener('orientationchange', resizeCanvas);
   setTimeout(resizeCanvas, 0);
 
-  // Controls
   clearBtn?.addEventListener('click', () => pad.clear());
 
   undoBtn?.addEventListener('click', () => {
@@ -58,38 +52,54 @@
     }
   });
 
+  // Save → download → close tab (no prompt/redirect)
   saveBtn?.addEventListener('click', () => {
     if (pad.isEmpty()) {
       alert('Please add a signature first.');
       return;
     }
     try {
-      const dataURL = pad.toDataURL('image/png'); // transparent output
+      const dataURL = pad.toDataURL('image/png'); // transparent PNG
       const name = `signature-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
-      triggerDownload(dataURL, name);
+      download(dataURL, name);
 
-      const ret = getReturnUrl();
-      if (ret) {
-        const go = confirm('Signature saved.\nReturn to your form now?');
-        if (go) window.location.href = ret;
-      }
+      // Attempt to close the tab. If blocked by the browser, show tiny hint.
+      setTimeout(() => {
+        window.close();
+        // If still not closed after a tick, show a non-intrusive hint.
+        setTimeout(() => {
+          if (!document.hidden) {
+            console.info('[Signature] Browser blocked window.close(); tab was not opened by script.');
+            // No alert to avoid UX noise; users can close manually.
+          }
+        }, 250);
+      }, 150);
     } catch (e) {
       console.error('[Signature] Failed to save PNG:', e);
       alert('Could not save the PNG. See console for details.');
     }
   });
 
+  // Return button → navigate to provided URL, if any.
   returnBtn?.addEventListener('click', () => {
     const ret = getReturnUrl();
-    if (!ret) {
+    if (ret) {
+      window.location.href = ret;
+    } else {
       alert('No return URL provided. Append ?form=https://… or ?return=https://… to the page URL.');
-      return;
     }
-    window.location.href = ret;
   });
 
-  // Helpers
-  function triggerDownload(dataURL, filename) {
+  // Hide the Return button if no return URL is present (optional UX nicety)
+  (function toggleReturnBtnVisibility(){
+    const ret = getReturnUrl();
+    if (returnBtn && !ret) {
+      // Keep it visible if you prefer; otherwise uncomment next line to hide.
+      // returnBtn.style.display = 'none';
+    }
+  })();
+
+  function download(dataURL, filename) {
     const a = document.createElement('a');
     a.href = dataURL;
     a.download = filename || 'signature.png';
@@ -97,6 +107,7 @@
     a.click();
     a.remove();
   }
+
   function getReturnUrl() {
     const p = new URLSearchParams(window.location.search);
     return p.get('form') || p.get('return') || '';
