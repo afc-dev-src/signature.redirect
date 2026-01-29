@@ -1,73 +1,61 @@
 // signature.js — AFC SME Finance Inc. (Signature app)
-// Matches index.html IDs: pad, undoBtn, clearBtn, savePNG, returnBtn
-// Requires Signature Pad UMD bundle (window.SignaturePad) to be loaded first.
+// Canvas stays transparent; background color is provided by .canvas-wrap in CSS.
+// IDs expected in index.html: pad, undoBtn, clearBtn, savePNG, returnBtn
+// Requires Signature Pad UMD (window.SignaturePad) loaded before this script.
 
 (function () {
   'use strict';
 
-  // --- Config ---
-  // Delay after triggering the download before attempting window.close().
-  // Increase to ~1200–1500 ms if some browsers close too quickly.
-  const DOWNLOAD_CLOSE_DELAY_MS = 800;
+  const DOWNLOAD_CLOSE_DELAY_MS = 800; // adjust to 1200–1500ms if needed
 
-  // --- Elements ---
+  // Elements
   const canvas    = document.getElementById('pad');
   const undoBtn   = document.getElementById('undoBtn');
   const clearBtn  = document.getElementById('clearBtn');
   const saveBtn   = document.getElementById('savePNG');
   const returnBtn = document.getElementById('returnBtn');
 
-  if (!canvas) {
-    console.error('[Signature] <canvas id="pad"> not found.');
-    return;
-  }
-  if (!window.SignaturePad) {
-    console.error('[Signature] SignaturePad library not loaded. Check CDN <script>.');
-    return;
-  }
+  if (!canvas) { console.error('[Signature] <canvas id="pad"> not found.'); return; }
+  if (!window.SignaturePad) { console.error('[Signature] SignaturePad UMD not loaded.'); return; }
 
-  // --- Initialize pad ---
+  // Initialize SignaturePad — transparent PNG output; pen colored, not the background
   const pad = new window.SignaturePad(canvas, {
     backgroundColor: 'rgba(0,0,0,0)', // keep PNG transparent
-    penColor: '#0B1D39',              // AFC dark blue
+    penColor: '#0B1D39',              // only the ink has color
     minWidth: 0.8,
     maxWidth: 2.2,
     throttle: 16
   });
 
-  // --- DPI-aware canvas sizing ---
+  // DPI-aware canvas: crisp lines on HiDPI displays
   function resizeCanvas() {
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
     const box = canvas.getBoundingClientRect();
     if (box.width === 0 || box.height === 0) return;
 
-    // Scale the bitmap to device pixels while keeping CSS size.
     canvas.width  = Math.floor(box.width  * ratio);
     canvas.height = Math.floor(box.height * ratio);
     canvas.getContext('2d').scale(ratio, ratio);
 
-    // Clearing after resize avoids distortions.
-    // (To preserve strokes across resize/orientation changes, you'd need to
-    //  save pad.toData() and reapply pad.fromData(data) with care.)
+    // Clear to avoid distortion after resize (we don't try to preserve strokes here)
     pad.clear();
   }
   window.addEventListener('resize', resizeCanvas);
   window.addEventListener('orientationchange', resizeCanvas);
-  // Run after layout so getBoundingClientRect() has correct values.
   setTimeout(resizeCanvas, 0);
 
-  // --- Controls ---
+  // Controls
   clearBtn?.addEventListener('click', () => pad.clear());
 
   undoBtn?.addEventListener('click', () => {
     const data = pad.toData();
     if (data && data.length) {
-      data.pop();       // remove last stroke
+      data.pop();
       pad.fromData(data);
     }
   });
 
-  // Save → download → attempt to close tab (no auto-redirect)
+  // Save → download → attempt to close the tab (no redirect prompt)
   saveBtn?.addEventListener('click', () => {
     if (pad.isEmpty()) {
       alert('Please add a signature first.');
@@ -78,14 +66,9 @@
       const name = `signature-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
       triggerDownload(dataURL, name);
 
-      // Optional mini-toast for clarity (auto-removed).
       const toast = showToast('Signature saved. Closing this tab…');
-
       setTimeout(() => {
         window.close();
-
-        // If the tab wasn't script-opened, browsers block close().
-        // Remove toast quietly and let the user close or use Return.
         setTimeout(() => toast?.remove(), 500);
       }, DOWNLOAD_CLOSE_DELAY_MS);
 
@@ -95,21 +78,14 @@
     }
   });
 
-  // Return button → navigate only when clicked
+  // Return button: navigate only when clicked
   returnBtn?.addEventListener('click', () => {
     const ret = getReturnUrl();
-    if (ret) {
-      window.location.href = ret;
-    } else {
-      alert('No return URL provided. Append ?form=https://… or ?return=https://… to the page URL.');
-    }
+    if (ret) window.location.href = ret;
+    else alert('No return URL provided. Append ?form=https://… or ?return=https://… to the page URL.');
   });
 
-  // (Optional) Hide Return when no URL is present
-  // const ret = getReturnUrl();
-  // if (returnBtn && !ret) returnBtn.style.display = 'none';
-
-  // --- Helpers ---
+  // Helpers
   function triggerDownload(dataURL, filename) {
     const a = document.createElement('a');
     a.href = dataURL;
@@ -119,11 +95,14 @@
     a.remove();
   }
 
+  // Supports ?form=... or ?return=...
   function getReturnUrl() {
     const p = new URLSearchParams(window.location.search);
-    return p.get('form') || p.get('return') || '';
+    const val = p.get('form') || p.get('return') || '';
+    return val;
   }
 
+  // Tiny non-blocking toast (auto-removed)
   function showToast(text) {
     try {
       const el = document.createElement('div');
@@ -143,8 +122,6 @@
       });
       document.body.appendChild(el);
       return el;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
 })();
