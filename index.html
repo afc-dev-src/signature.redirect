@@ -27,7 +27,17 @@
     .btn-primary:hover { filter: brightness(0.95); }
     .btn-link { border-color: transparent; color: var(--afc-blue); text-decoration: underline; background: transparent; }
 
-    .canvas-wrap { position: relative; background: repeating-linear-gradient(0deg, #ffffff, #ffffff 31px, #f7f7f7 31px, #f7f7f7 32px); }
+    /* UPDATED background: light navy with a red band across bottom 12% */
+    .canvas-wrap{
+      position: relative;
+      background: linear-gradient(
+        to bottom,
+        #102a54 0%,
+        #102a54 88%,
+        #C62828 88%,
+        #C62828 100%
+      );
+    }
     canvas { width: 100%; height: 340px; display: block; touch-action: none; background: transparent; }
 
     .hint { font-size: .9rem; color: var(--muted); margin: 12px 8px; text-align: center; }
@@ -86,8 +96,9 @@ SOFTWARE.</pre>
     </div>
   </div>
 
-  <!-- Script: Signature Pad (pinned). You can vendor locally later if desired. -->
+  <!-- Script: Signature Pad (UMD) -->
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@5.1.3/dist/signature_pad.umd.min.js"></script>
-  <script src="./signature.js"></script>
+  <!-- Cache-busted signature.js so GH Pages serves the latest -->
+  <script src="./signature.js?v=2026-01-29-01"></script>
 </body>
 </html>
