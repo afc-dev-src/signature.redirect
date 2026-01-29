@@ -1,160 +1,121 @@
-<script>
-/* AFC-branded signature app (half navy/red bg, white pad, transparent export, Close Tab) */
-(function () {
-  // ---------- Inject styles (no HTML edits required) ----------
-  const styleTag = document.createElement('style');
-  styleTag.setAttribute('data-afc-style', 'true');
-  styleTag.textContent = `
-    :root {
-      --afc-blue: #0B1D39;  /* navy */
-      --afc-red:  #C62828;  /* red */
-    }
-    /* Full-page half navy/half red (diagonal) */
-    body {
-      background: linear-gradient(135deg, var(--afc-blue) 0 50%, var(--afc-red) 50% 100%) !important;
-      min-height: 100vh;
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-    }
-    /* Make the canvas look white without baking it into the PNG */
-    #pad {
-      background: #ffffff !important;         /* visual only */
-      border-radius: 12px;
-      box-shadow: 0 4px 18px rgba(0,0,0,.15);
-      touch-action: none;                     /* better ink on touch */
-      width: 100%;
-      max-width: 720px;
-      height: 340px;                          /* visual height; JS sets pixel ratio */
-      display: block;
-      margin: 24px auto;
-    }
-    /* Optional toolbar styling */
-    .toolbar {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin: 8px 16px 24px;
-    }
-    .toolbar button {
-      border-radius: 10px;
-      padding: 10px 14px;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid #e5e7eb;
-      color: #0B1D39;
-      background: #ffffff;
-      transition: .15s ease;
-    }
-    .toolbar button:hover { filter: brightness(0.97); }
-    #savePNG {
-      background: var(--afc-red);
-      border-color: var(--afc-red);
-      color: #fff;
-    }
-    #savePNG:hover { filter: brightness(0.95); }
-  `;
-  document.head.appendChild(styleTag);
+// signature.js — AFC SME Finance Inc.
+// Works with index.html that includes:
+// - <canvas id="pad">, and buttons: undoBtn, clearBtn, savePNG, returnBtn
+// - Signature Pad UMD from jsDelivr (window.SignaturePad)
 
-  // ---------- Elements ----------
-  const canvas    = document.getElementById('pad');
-  const undoBtn   = document.getElementById('undoBtn');
-  const clearBtn  = document.getElementById('clearBtn');
-  const savePNG   = document.getElementById('savePNG');
-  const returnBtn = document.getElementById('returnBtn'); // will become "Close Tab"
+(function () {
+  'use strict';
+
+  // ---- Element hooks ----
+  const canvas   = document.getElementById('pad');
+  const undoBtn  = document.getElementById('undoBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const saveBtn  = document.getElementById('savePNG');
+  const returnBtn= document.getElementById('returnBtn');
 
   if (!canvas) {
-    console.error('[AFC Sign] #pad canvas not found.');
+    console.error('[Signature] <canvas id="pad"> not found.');
+    return;
+  }
+  if (!window.SignaturePad) {
+    console.error('[Signature] SignaturePad library not loaded. Check CDN <script>.');
     return;
   }
 
-  // ---------- Close Tab helpers ----------
-  // Note: window.close() only works if this tab was script-opened (e.g., window.open or target="_blank" from a click).
-  function tryCloseTab() {
-    // Attempt 1
-    window.close();
-
-    // Attempt 2 (some engines require self-open before close)
-    setTimeout(() => {
-      try {
-        window.open('', '_self'); 
-        window.close();
-      } catch {}
-    }, 50);
-  }
-
-  function promptCloseAfterSave() {
-    // Prompt the user; if OK, attempt to close the tab.
-    if (confirm('Signature saved. Close this tab now?')) {
-      tryCloseTab();
-    }
-  }
-
-  // ---------- Signature Pad (transparent export) ----------
-  // DO NOT set backgroundColor; keeps PNG background transparent.
-  const signaturePad = new SignaturePad(canvas, {
-    penColor: '#0B1D39',  // dark blue ink
-    minWidth: 0.5,
-    maxWidth: 2.5
+  // ---- Create pad ----
+  const pad = new window.SignaturePad(canvas, {
+    backgroundColor: 'rgba(0,0,0,0)', // transparent
+    penColor: '#0B1D39', // AFC dark blue to match your palette
+    minWidth: 0.8,
+    maxWidth: 2.2,
+    throttle: 16
   });
 
-  // ---------- Responsive canvas with HiDPI support ----------
+  // ---- High-DPI / responsive canvas sizing ----
   function resizeCanvas() {
-    const data  = signaturePad.toData();                     // preserve strokes through resize
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    const rect  = canvas.getBoundingClientRect();
+    // Keep CSS size (set by your CSS) but scale the bitmap for crisp lines.
+    const { width, height } = canvas.getBoundingClientRect();
+    // Guard: if element not laid out yet, skip
+    if (width === 0 || height === 0) return;
 
-    // Match the CSS height (340px) & current width
-    canvas.width  = Math.floor(rect.width  * ratio);
-    canvas.height = Math.floor(340 * ratio);
-
+    canvas.width  = Math.floor(width  * ratio);
+    canvas.height = Math.floor(height * ratio);
     const ctx = canvas.getContext('2d');
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);              // scale once
+    ctx.scale(ratio, ratio);
 
-    signaturePad.clear();
-    if (data && data.length) signaturePad.fromData(data);
+    // IMPORTANT: SignaturePad needs a reset after resize to avoid distortions.
+    // To preserve drawing when resizing, we’d need to save+restore; for now
+    // we clear only if it was empty (no need to redraw).
+    pad.clear();
   }
-  window.addEventListener('resize', resizeCanvas, { passive: true });
-  resizeCanvas();
 
-  // ---------- Controls ----------
+  // Resize on load and on orientation/resize
+  window.addEventListener('resize', resizeCanvas);
+  window.addEventListener('orientationchange', resizeCanvas);
+  // Defer initial resize to after layout
+  setTimeout(resizeCanvas, 0);
+
+  // ---- Controls ----
+  clearBtn?.addEventListener('click', () => pad.clear());
+
   undoBtn?.addEventListener('click', () => {
-    const data = signaturePad.toData();
-    if (data.length) {
-      data.pop();
-      signaturePad.fromData(data);
+    const data = pad.toData();
+    if (data && data.length) {
+      data.pop(); // remove last stroke
+      pad.fromData(data);
     }
   });
 
-  clearBtn?.addEventListener('click', () => signaturePad.clear());
+  saveBtn?.addEventListener('click', () => {
+    if (pad.isEmpty()) {
+      alert('Please add a signature first.');
+      return;
+    }
+    try {
+      // Transparent PNG
+      const dataURL = pad.toDataURL('image/png'); // default is transparent if backgroundColor is transparent
+      // Trigger download
+      downloadDataURL(dataURL, makeFileName());
+      // After download, optionally offer to return
+      const ret = getReturnUrl();
+      if (ret) {
+        const go = confirm('Signature saved.\nReturn to your form now?');
+        if (go) window.location.href = ret;
+      }
+    } catch (e) {
+      console.error('[Signature] Failed to save PNG:', e);
+      alert('Could not save the PNG. See console for details.');
+    }
+  });
 
-  function download(dataUrl, filename) {
+  returnBtn?.addEventListener('click', () => {
+    const ret = getReturnUrl();
+    if (!ret) {
+      alert('No return URL provided. Append ?form=https://… or ?return=https://… to the page URL.');
+      return;
+    }
+    window.location.href = ret;
+  });
+
+  // ---- Helpers ----
+  function makeFileName() {
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    return `signature-${ts}.png`;
+  }
+
+  function downloadDataURL(dataURL, filename) {
     const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = filename;
+    a.href = dataURL;
+    a.download = filename || 'signature.png';
     document.body.appendChild(a);
     a.click();
     a.remove();
   }
 
-  savePNG?.addEventListener('click', () => {
-    if (signaturePad.isEmpty()) {
-      alert('Please add a signature first.');
-      return;
-    }
-    const url = signaturePad.toDataURL('image/png'); // transparent PNG
-    download(url, `afc-signature-${Date.now()}.png`);
-    // Prompt to close after saving
-    setTimeout(() => promptCloseAfterSave(), 300);
-  });
-
-  // Replace "Return to Form" with "Close Tab"
-  if (returnBtn) {
-    returnBtn.textContent = 'Close Tab';
-    returnBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      tryCloseTab();
-    });
+  // ?form=... or ?return=...
+  function getReturnUrl() {
+    const p = new URLSearchParams(window.location.search);
+    return p.get('form') || p.get('return') || '';
   }
 })();
-</script>
