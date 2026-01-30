@@ -1,13 +1,12 @@
-// signature.js — AFC SME Finance Inc. (Signature app)
-// Canvas is transparent; background color is outside in CSS.
-// Requires Signature Pad UMD (window.SignaturePad) loaded before this script.
+// signature.js
+// Transparent export by default; visible pad and toolbar are white via CSS.
+// Handles missing return URL by posting message to opener (if present) or showing an alert.
 
 (function () {
   'use strict';
 
   const DOWNLOAD_CLOSE_DELAY_MS = 800;
 
-  // Elements
   const canvas    = document.getElementById('pad');
   const undoBtn   = document.getElementById('undoBtn');
   const clearBtn  = document.getElementById('clearBtn');
@@ -17,10 +16,10 @@
   if (!canvas) { console.error('[Signature] <canvas id="pad"> not found.'); return; }
   if (!window.SignaturePad) { console.error('[Signature] SignaturePad UMD not loaded.'); return; }
 
-  // Transparent PNG; only strokes are visible
+  // Set backgroundColor to transparent so exported PNG is transparent.
   const pad = new window.SignaturePad(canvas, {
-    backgroundColor: 'rgba(0,0,0,0)', // keep PNG transparent
-    penColor: '#0B1D39',              // ink color
+    backgroundColor: 'rgba(0,0,0,0)', // transparent export
+    penColor: '#0B1D39',
     minWidth: 0.8,
     maxWidth: 2.2,
     throttle: 16
@@ -60,14 +59,13 @@
     }
     try {
       const dataURL = pad.toDataURL('image/png'); // transparent PNG
-      // Simplified filename: only date (YYYY-MM-DD)
-      const dateStr = new Date().toISOString().split('T')[0];
+      const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       const name = `signature-${dateStr}.png`;
       triggerDownload(dataURL, name);
 
       const toast = showToast('Signature saved. Closing this tab…');
       setTimeout(() => {
-        window.close();
+        try { window.close(); } catch (e) { /* ignore */ }
         setTimeout(() => toast?.remove(), 500);
       }, DOWNLOAD_CLOSE_DELAY_MS);
 
@@ -77,15 +75,50 @@
     }
   });
 
-  // Return button: redirect + close tab
+  // Return to form: redirect if URL provided; otherwise try to postMessage to opener and close.
   returnBtn?.addEventListener('click', () => {
     const ret = getReturnUrl();
     if (ret) {
+      // Navigate then attempt to close after a short delay.
       window.location.href = ret;
-      setTimeout(() => window.close(), 1000); // close after redirect
-    } else {
-      alert('No return URL provided. Append ?form=https://… or ?return=https://… to the page URL.');
+      setTimeout(() => {
+        try { window.close(); } catch (e) { /* ignore */ }
+      }, 1000);
+      return;
     }
+
+    // No return URL provided — try to send the signature to the opener (if present)
+    if (window.opener && !window.opener.closed) {
+      if (pad.isEmpty()) {
+        // If no signature yet, just notify opener and close
+        try {
+          window.opener.postMessage({ type: 'signature-no-url', message: 'No return URL provided; signature pad closed.' }, '*');
+        } catch (e) { /* ignore */ }
+        try { window.close(); } catch (e) { /* ignore */ }
+        return;
+      }
+
+      try {
+        const dataURL = pad.toDataURL('image/png');
+        const dateStr = new Date().toISOString().split('T')[0];
+        const name = `signature-${dateStr}.png`;
+        // Send the data URL and filename to the opener window
+        window.opener.postMessage({ type: 'signature-data', filename: name, dataURL: dataURL }, '*');
+        const toast = showToast('Signature sent to parent window. Closing…');
+        setTimeout(() => {
+          try { window.close(); } catch (e) { /* ignore */ }
+          setTimeout(() => toast?.remove(), 500);
+        }, 800);
+        return;
+      } catch (e) {
+        console.warn('[Signature] postMessage to opener failed:', e);
+        alert('No return URL provided and unable to send to opener. Please provide ?form= or ?return= in the URL.');
+        return;
+      }
+    }
+
+    // Final fallback: show clear alert so user knows how to proceed
+    alert('No return URL provided. Append ?form=https://example.com or ?return=https://example.com to the page URL, or open this pad from your form so it can receive the signature.');
   });
 
   // Helpers
