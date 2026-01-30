@@ -1,11 +1,11 @@
 // signature.js — AFC SME Finance Inc. (Signature app)
-// The canvas (pad) is transparent. The colored background is on .canvas-wrap in CSS.
+// Canvas is transparent; background color is outside in CSS.
 // Requires Signature Pad UMD (window.SignaturePad) loaded before this script.
 
 (function () {
   'use strict';
 
-  const DOWNLOAD_CLOSE_DELAY_MS = 800; // adjust if needed
+  const DOWNLOAD_CLOSE_DELAY_MS = 800;
 
   // Elements
   const canvas    = document.getElementById('pad');
@@ -17,16 +17,16 @@
   if (!canvas) { console.error('[Signature] <canvas id="pad"> not found.'); return; }
   if (!window.SignaturePad) { console.error('[Signature] SignaturePad UMD not loaded.'); return; }
 
-  // Initialize SignaturePad — transparent PNG; only the ink is colored
+  // Transparent PNG; only strokes are visible
   const pad = new window.SignaturePad(canvas, {
     backgroundColor: 'rgba(0,0,0,0)', // keep PNG transparent
-    penColor: '#0B1D39',              // ink color only
+    penColor: '#0B1D39',              // ink color
     minWidth: 0.8,
     maxWidth: 2.2,
     throttle: 16
   });
 
-  // DPI-aware canvas sizing so strokes look crisp
+  // DPI-aware canvas sizing
   function resizeCanvas() {
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
     const box = canvas.getBoundingClientRect();
@@ -36,7 +36,6 @@
     canvas.height = Math.floor(box.height * ratio);
     canvas.getContext('2d').scale(ratio, ratio);
 
-    // Clear to avoid distortion after resize
     pad.clear();
   }
   window.addEventListener('resize', resizeCanvas);
@@ -54,7 +53,6 @@
     }
   });
 
-  // Save → download → attempt to close tab (no redirect)
   saveBtn?.addEventListener('click', () => {
     if (pad.isEmpty()) {
       alert('Please add a signature first.');
@@ -62,7 +60,9 @@
     }
     try {
       const dataURL = pad.toDataURL('image/png'); // transparent PNG
-      const name = `signature-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+      // Simplified filename: only date (YYYY-MM-DD)
+      const dateStr = new Date().toISOString().split('T')[0];
+      const name = `signature-${dateStr}.png`;
       triggerDownload(dataURL, name);
 
       const toast = showToast('Signature saved. Closing this tab…');
@@ -77,11 +77,15 @@
     }
   });
 
-  // Return button: navigate only when clicked (expects ?form= or ?return= parameter)
+  // Return button: redirect + close tab
   returnBtn?.addEventListener('click', () => {
     const ret = getReturnUrl();
-    if (ret) window.location.href = ret;
-    else alert('No return URL provided. Append ?form=https://… or ?return=https://… to the page URL.');
+    if (ret) {
+      window.location.href = ret;
+      setTimeout(() => window.close(), 1000); // close after redirect
+    } else {
+      alert('No return URL provided. Append ?form=https://… or ?return=https://… to the page URL.');
+    }
   });
 
   // Helpers
