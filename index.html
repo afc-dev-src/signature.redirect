@@ -7,13 +7,13 @@
   <meta name="color-scheme" content="light only">
   <style>
     :root {
-      --afc-blue: #0B1D39;  /* dark blue */
+      --afc-blue: #0B1D39;  /* dark blue (ink color) */
       --afc-red:  #C62828;  /* red accent */
       --text:     #0B1D39;  /* main text */
       --muted:    #6B7280;  /* gray */
       --border:   #D1D5DB;  /* light border */
       --bg:       #FFFFFF;  /* page background */
-      --brand-bg: #102a54;  /* light navy for header & canvas-wrap */
+      --brand-bg: #102a54;  /* light navy used behind the pad + header bar */
     }
 
     html,body {
@@ -24,7 +24,7 @@
 
     .wrap { max-width: 760px; margin: 28px auto; padding: 0 16px 24px; }
 
-    /* Brand bar – larger, white text on navy */
+    /* Brand bar — larger and white for contrast */
     .brand {
       text-align: center;
       background: var(--brand-bg);
@@ -34,10 +34,10 @@
     }
     .brand h1 {
       margin: 0;
-      font-size: 1.6rem;           /* enlarged */
+      font-size: 1.6rem;         /* enlarged text */
       font-weight: 800;
       letter-spacing: .3px;
-      color: #ffffff;              /* white font */
+      color: #ffffff;            /* white font */
     }
 
     .panel {
@@ -61,10 +61,10 @@
     .btn-primary:hover { filter: brightness(0.95); }
     .btn-link { border-color: transparent; color: var(--afc-blue); text-decoration: underline; background: transparent; }
 
-    /* >>> Background color lives here, not on the canvas (canvas stays transparent) */
+    /* >>> Background is on the container UNDER the pad (pad stays transparent) */
     .canvas-wrap{
       position: relative;
-      /* light navy field + red band across bottom 12% */
+      /* Light navy field with a red band across the bottom 12% */
       background: linear-gradient(
         to bottom,
         var(--brand-bg) 0%,
@@ -73,9 +73,10 @@
         var(--afc-red) 100%
       );
     }
+    /* The pad itself is transparent — do NOT color the canvas */
     canvas {
       width: 100%; height: 340px; display: block; touch-action: none;
-      background: transparent;     /* keep transparency so gradient shows through */
+      background: transparent;
     }
 
     .hint { font-size: .9rem; color: var(--muted); margin: 12px 8px; text-align: center; }
@@ -101,6 +102,8 @@
         <button id="savePNG" class="btn-primary" aria-label="Save signature as transparent PNG">Save PNG (Transparent)</button>
         <button id="returnBtn" class="btn-link" aria-label="Return to Microsoft Form">Return to Form</button>
       </div>
+
+      <!-- The pad sits over the gradient background; pad keeps transparency -->
       <div class="canvas-wrap">
         <canvas id="pad" aria-label="Signature canvas"></canvas>
       </div>
@@ -141,7 +144,7 @@ SOFTWARE.</pre>
 
   <!-- Signature Pad (UMD) -->
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@5.1.3/dist/signature_pad.umd.min.js"></script>
-  <!-- Add a small cache-buster so GH Pages serves your latest JS -->
-  <script src="./signature.js?v=2026-01-29-03"></script>
+  <!-- Cache-busted so GH Pages serves the latest JS -->
+  <script src="./signature.js?v=2026-01-29-05"></script>
 </body>
 </html>

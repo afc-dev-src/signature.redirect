@@ -1,12 +1,11 @@
 // signature.js — AFC SME Finance Inc. (Signature app)
-// Canvas stays transparent; background color is provided by .canvas-wrap in CSS.
-// IDs expected in index.html: pad, undoBtn, clearBtn, savePNG, returnBtn
+// The canvas (pad) is transparent. The colored background is on .canvas-wrap in CSS.
 // Requires Signature Pad UMD (window.SignaturePad) loaded before this script.
 
 (function () {
   'use strict';
 
-  const DOWNLOAD_CLOSE_DELAY_MS = 800; // adjust to 1200–1500ms if needed
+  const DOWNLOAD_CLOSE_DELAY_MS = 800; // adjust if needed
 
   // Elements
   const canvas    = document.getElementById('pad');
@@ -18,16 +17,16 @@
   if (!canvas) { console.error('[Signature] <canvas id="pad"> not found.'); return; }
   if (!window.SignaturePad) { console.error('[Signature] SignaturePad UMD not loaded.'); return; }
 
-  // Initialize SignaturePad — transparent PNG output; pen colored, not the background
+  // Initialize SignaturePad — transparent PNG; only the ink is colored
   const pad = new window.SignaturePad(canvas, {
     backgroundColor: 'rgba(0,0,0,0)', // keep PNG transparent
-    penColor: '#0B1D39',              // only the ink has color
+    penColor: '#0B1D39',              // ink color only
     minWidth: 0.8,
     maxWidth: 2.2,
     throttle: 16
   });
 
-  // DPI-aware canvas: crisp lines on HiDPI displays
+  // DPI-aware canvas sizing so strokes look crisp
   function resizeCanvas() {
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
     const box = canvas.getBoundingClientRect();
@@ -37,7 +36,7 @@
     canvas.height = Math.floor(box.height * ratio);
     canvas.getContext('2d').scale(ratio, ratio);
 
-    // Clear to avoid distortion after resize (we don't try to preserve strokes here)
+    // Clear to avoid distortion after resize
     pad.clear();
   }
   window.addEventListener('resize', resizeCanvas);
@@ -55,7 +54,7 @@
     }
   });
 
-  // Save → download → attempt to close the tab (no redirect prompt)
+  // Save → download → attempt to close tab (no redirect)
   saveBtn?.addEventListener('click', () => {
     if (pad.isEmpty()) {
       alert('Please add a signature first.');
@@ -78,7 +77,7 @@
     }
   });
 
-  // Return button: navigate only when clicked
+  // Return button: navigate only when clicked (expects ?form= or ?return= parameter)
   returnBtn?.addEventListener('click', () => {
     const ret = getReturnUrl();
     if (ret) window.location.href = ret;
@@ -95,14 +94,11 @@
     a.remove();
   }
 
-  // Supports ?form=... or ?return=...
   function getReturnUrl() {
     const p = new URLSearchParams(window.location.search);
-    const val = p.get('form') || p.get('return') || '';
-    return val;
+    return p.get('form') || p.get('return') || '';
   }
 
-  // Tiny non-blocking toast (auto-removed)
   function showToast(text) {
     try {
       const el = document.createElement('div');
